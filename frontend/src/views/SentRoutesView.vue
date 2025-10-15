@@ -15,8 +15,18 @@
         </thead>
         <tbody>
           <tr v-for="route in routes" :key="route.id">
-            <td>{{ route.routeNumber }}</td>
-            <td>{{ route.recipient.fullName }}</td>
+            <td>
+              {{ route.routeNumber }}
+              <strong v-if="route.copyNumber > 0" style="color: #007bff;">
+                (Copia {{ route.copyNumber }})
+              </strong>
+            </td>
+            <td>
+              {{ route.recipient.fullName }}
+              <span v-if="route.copyNumber > 0" class="copy-recipient-badge">
+                (Copia)
+              </span>
+            </td>
             <td>{{ new Date(route.createdAt).toLocaleDateString() }}</td>
             <td>
               <span :style="{ color: route.status === 'cancelled' ? 'red' : 'green' }">
@@ -63,35 +73,24 @@ const routes = ref<any[]>([]);
 const loading = ref(false);
 const copyModal = ref<any>(null);
 const copyRecipientId = ref('');
-const users = ref<any[]>([
-  { id: 'user2', fullName: 'María López' },
-  { id: 'user3', fullName: 'Carlos Díaz' },
-]);
+const users = ref<any[]>([]);
 
-onMounted(async () => {
+const fetchSentRoutes = async () => {
   loading.value = true;
   try {
-    // Simulamos datos (en futuro: routeService.getSentRoutes())
-    routes.value = [
-      {
-        id: 'r1',
-        routeNumber: 'HR-20251015-0001',
-        recipient: { fullName: 'María López' },
-        createdAt: new Date(),
-        status: 'sent',
-      },
-      {
-        id: 'r2',
-        routeNumber: 'HR-20251015-0002',
-        recipient: { fullName: 'Carlos Díaz' },
-        createdAt: new Date(Date.now() - 86400000),
-        status: 'cancelled',
-      },
-    ];
+    // Hacemos la llamada real al backend
+    const [routesResponse, usersResponse] = await Promise.all([
+      routeService.getSentRoutes(),
+      users.value.length === 0 ? routeService.getUsers() : Promise.resolve({ data: users.value }), // Cargar usuarios solo si es necesario
+    ]);
+    routes.value = routesResponse.data;
+    users.value = usersResponse.data;
   } finally {
     loading.value = false;
   }
-});
+};
+
+onMounted(fetchSentRoutes);
 
 const downloadPdf = async (routeId: string) => {
   const response = await routeService.downloadPdf(routeId);
@@ -122,6 +121,7 @@ const sendCopy = async () => {
   if (!copyRecipientId.value) return;
   await routeService.sendCopy(copyModal.value.id, copyRecipientId.value);
   alert('Copia enviada');
+  await fetchSentRoutes(); // <-- Volver a cargar la lista
   copyModal.value = null;
 };
 </script>
@@ -151,5 +151,9 @@ button {
   border: 1px solid #ccc;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   z-index: 1000;
+}
+.copy-recipient-badge {
+  font-size: 0.8em;
+  color: #6c757d;
 }
 </style>

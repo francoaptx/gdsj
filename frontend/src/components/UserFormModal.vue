@@ -61,14 +61,14 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save']);
 
-let isMousedownOnBackdrop = false;
+const isMousedownOnBackdrop = ref(false);
 
 const handleBackdropMouseUp = () => {
   // Cierra el modal solo si el mousedown también ocurrió en el backdrop
-  if (isMousedownOnBackdrop) {
+  if (isMousedownOnBackdrop.value) {
     emit('close');
   }
-  isMousedownOnBackdrop = false; // Resetea para el próximo clic
+  isMousedownOnBackdrop.value = false; // Resetea para el próximo clic
 };
 
 const form = ref({
@@ -121,8 +121,9 @@ watch(() => props.user, (newUser) => {
 
 const submitForm = () => {
   const dataToSave = { ...form.value };
-  if (!dataToSave.password) {
-    delete dataToSave.password; // No enviar contraseña si está vacía en modo edición
+  // En modo edición, si el campo de contraseña está vacío, no lo enviamos para no sobreescribirla.
+  if (isEditing.value && !dataToSave.password) {
+    delete dataToSave.password;
   }
   emit('save', dataToSave);
 };

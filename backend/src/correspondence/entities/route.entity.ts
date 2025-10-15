@@ -8,6 +8,7 @@ import {
   ManyToOne,
   JoinColumn,
   OneToOne,
+  Unique,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Document } from './document.entity'; // ← nuevo
@@ -27,12 +28,16 @@ export enum RoutePriority {
 }
 
 @Entity('routes')
+@Unique(['routeNumber', 'copyNumber']) // La combinación debe ser única
 export class Route {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column() // Ya no es único por sí solo
   routeNumber: string; // ← generado automáticamente
+
+  @Column({ type: 'int', default: 0 })
+  copyNumber: number; // 0 para el original, 1, 2, ... para las copias
 
   @Column({ type: 'text', nullable: true })
   reference?: string; // ← puede venir de un Cite o ser manual

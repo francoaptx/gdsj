@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { Route } from './entities/route.entity';
 
 @Injectable()
@@ -17,7 +17,7 @@ export class RouteNumberService {
 
     const count = await this.routeRepository.count({
       where: {
-        routeNumber: `HR-${year}${month}${day}-%`,
+        routeNumber: Like(`HR-${year}${month}${day}-%`),
       },
     });
 

@@ -99,22 +99,40 @@ const authStore = useAuthStore();
 
 onMounted(async () => {
   currentUser.value = authStore.user;
-  users.value = await routeService.getUsers();
-  documents.value = await routeService.getUploadedDocuments();
+  const usersResponse = await routeService.getUsers();
+  users.value = usersResponse.data; // <-- Extraer los datos de la respuesta
+  const documentsResponse = await routeService.getUploadedDocuments();
+  documents.value = documentsResponse.data;
 });
 
 const onFileChange = (event: Event) => {
   const input = event.target as HTMLInputElement;
-  if (input.files?.length) selectedFile.value = input.files[0];
+  if (input.files && input.files.length > 0) {
+    selectedFile.value = input.files[0];
+  } else {
+    selectedFile.value = null; // Limpiar la selección si no hay archivo
+  }
 };
 
 const submitRoute = async () => {
   loading.value = true;
   try {
-    const routeData = {
-      ...form.value,
-      reference: form.value.documentId ? '' : form.value.reference, // si hay doc, ref vacía (se llena en backend)
+    // Construir el objeto de datos explícitamente para mayor seguridad y claridad
+    const routeData: { [key: string]: any } = {
+      recipientId: form.value.recipientId,
+      instruction: form.value.instruction,
+      totalPages: form.value.totalPages,
+      attachmentsCount: form.value.attachmentsCount,
+      priority: form.value.priority,
     };
+
+    // Añadir campos opcionales solo si tienen valor
+    if (form.value.documentId) {
+      routeData.documentId = form.value.documentId;
+    } else if (form.value.reference) {
+      routeData.reference = form.value.reference;
+    }
+
     await routeService.createRoute(routeData, selectedFile.value);
     alert('✅ Hoja de ruta enviada correctamente');
     router.push('/enviados'); // RF 4.7

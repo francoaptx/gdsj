@@ -18,6 +18,7 @@ import { PdfService } from './pdf.service';
 import { HistoryService } from './history.service';
 import { GroupingService } from './grouping.service';
 import { Route } from './entities/route.entity';
+import { CreateRouteDto } from './dto/create-route.dto';
 import * as PDFDocument from 'pdfkit';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -50,7 +51,7 @@ export class RouteController {
   )
   async createRoute(
     @Request() req,
-    @Body() body: any,
+    @Body() body: CreateRouteDto,
     @UploadedFile() simpleAttachment?: Express.Multer.File,
   ) {
     const routeData = {
@@ -61,6 +62,12 @@ export class RouteController {
     };
     return this.routeService.createRoute(req.user, routeData);
   }
+
+    @Get('sent')
+    async getSentRoutes(@Request() req) {
+      return this.routeService.getSentRoutes(req.user.id);
+    }
+
     // Generar PDF
     @Get(':id/pdf')
     async getRoutePdf(@Param('id') id: string, @Request() req, @Res() res) {

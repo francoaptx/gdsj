@@ -70,13 +70,22 @@ export class RouteService {
 
     const copy = this.routeRepository.create({
         ...original,
-        id: undefined, // nuevo ID
         recipientId: newRecipientId,
         status: RouteStatus.SENT,
         createdAt: new Date(),
     });
-    // Conserva el mismo número de hoja de ruta (RF 5.3)
+
+    // Contar cuántas copias existen para este número de hoja de ruta
+    const existingCopies = await this.routeRepository.count({
+      where: { routeNumber: original.routeNumber },
+    });
+
+    // Asignar el número de copia y mantener el routeNumber original
     copy.routeNumber = original.routeNumber;
+    copy.copyNumber = existingCopies; // El original es 1, la primera copia es 2, etc.
+
+    // Asegurarse de que se genere un nuevo ID para la copia
+    delete copy.id;
 
     return this.routeRepository.save(copy);
     }
@@ -132,6 +141,14 @@ export class RouteService {
     await this.routeRepository.save(original);
 
     return this.routeRepository.save(forward);
+    }
+
+    async getSentRoutes(senderId: string) {
+    return this.routeRepository.find({
+        where: { senderId },
+        relations: ['recipient'],
+        order: { createdAt: 'DESC' },
+    });
     }
 
     async getIncomingRoutes(recipientId: string) {

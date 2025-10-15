@@ -7,7 +7,6 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CorrespondenceModule } from './correspondence/correspondence.module';
 import { CatalogsModule } from './correspondence/catalogs.module';
-import { Office } from './correspondence/office.entity';
 
 @Module({
   imports: [
@@ -30,7 +29,6 @@ import { Office } from './correspondence/office.entity';
     UsersModule,
     CorrespondenceModule,
     CatalogsModule,
-    Office,
   ],
   // controllers: [AppController],
   // providers: [AppService],
