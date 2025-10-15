@@ -8,6 +8,12 @@ export const authService = {
     return axios.post(`${API_URL}/auth/login`, { username, password });
   },
 
+  getProfile() {
+    return axios.get(`${API_URL}/auth/profile`, {
+      headers: { Authorization: `Bearer ${this.getToken()}` },
+    });
+  },
+
   setToken(token: string) {
     localStorage.setItem('token', token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;

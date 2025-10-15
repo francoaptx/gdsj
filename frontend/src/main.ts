@@ -13,6 +13,8 @@ app.use(router);
 
 // Restaurar sesión si existe token
 const authStore = useAuthStore();
-authStore.checkAuth();
+if (authStore.token) {
+  authStore.fetchProfile();
+}
 
 app.mount('#app');

@@ -24,11 +24,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new Error('Usuario no encontrado');
     }
-    return {
-      id: user.id,
-      username: user.username,
-      isAdmin: user.isAdmin,
-      sub: payload.sub,
-    };
+    // Devolvemos el objeto de usuario completo, que NestJS adjuntará a `req.user`
+    const { password, ...result } = user;
+    return result;
   }
 }

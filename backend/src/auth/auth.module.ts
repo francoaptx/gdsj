@@ -7,7 +7,8 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './jwt.strategy'; // ← nuevo
-
+import { LocalStrategy } from './local.strategy';
+import { LocalAuthGuard } from './local-auth.guard';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { JwtStrategy } from './jwt.strategy'; // ← nuevo
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, JwtStrategy], // ← registra JwtStrategy
+  providers: [AuthService, JwtStrategy, LocalStrategy, LocalAuthGuard], // ← registra JwtStrategy
   controllers: [AuthController],
   exports: [AuthService],
 })

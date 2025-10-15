@@ -9,11 +9,10 @@ export const createInitialData = async (dataSource: DataSource) => {
   // Verificar si ya existe un admin
   const adminExists = await userRepository.findOne({ where: { username: 'admin' } });
   if (!adminExists) {
-    const salt = await bcrypt.genSalt();
     const admin = userRepository.create({
       fullName: 'Administrador del Sistema',
       username: 'admin',
-      password: await bcrypt.hash('admin123', salt),
+      password: await bcrypt.hash('admin123', 10), // 10 es el número de rondas de salting
       office: 'Dirección Informática',
       position: 'Administrador',
       isAdmin: true,

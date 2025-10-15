@@ -1,5 +1,5 @@
 // src/users/users.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -12,14 +12,29 @@ export class UserService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async create(user: Partial<User>): Promise<User> {
-    const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash(user.password, salt);
+  async create(createUserDto: Partial<User>): Promise<Omit<User, 'password'>> {
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     const newUser = this.usersRepository.create({
-      ...user,
+      ...createUserDto,
       password: hashedPassword,
     });
-    return this.usersRepository.save(newUser);
+    const savedUser = await this.usersRepository.save(newUser);
+    const { password, ...result } = savedUser;
+    return result;
+  }
+
+  async findAll(): Promise<Omit<User, 'password'>[]> {
+    const users = await this.usersRepository.find();
+    // Mapeamos para quitar la contraseña de cada usuario
+    return users.map(({ password, ...user }) => user);
+  }
+
+  async findRecipients(): Promise<Pick<User, 'id' | 'fullName' | 'position'>[]> {
+    return this.usersRepository.find({
+      where: { isAdmin: false, isActive: true },
+      select: ['id', 'fullName', 'position'],
+      order: { fullName: 'ASC' },
+    });
   }
 
   async findByUsername(username: string): Promise<User | undefined> {
@@ -30,11 +45,24 @@ export class UserService {
     return this.usersRepository.findOne({ where: { id } });
   }
 
-  // En users.service.ts
-  async findAllActive() {
-    return this.usersRepository.find({
-      where: { isActive: true },
-      select: ['id', 'fullName', 'position', 'office'], // evita exponer contraseña
-    });
+  async update(id: string, updateUserDto: Partial<User>): Promise<Omit<User, 'password'>> {
+    if (updateUserDto.password) {
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    }
+    await this.usersRepository.update(id, updateUserDto);
+    const updatedUser = await this.findById(id);
+    if (!updatedUser) {
+      throw new NotFoundException(`Usuario con ID "${id}" no encontrado`);
+    }
+    const { password, ...result } = updatedUser;
+    return result;
+  }
+
+  async remove(id: string): Promise<{ deleted: boolean; message?: string }> {
+    const result = await this.usersRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Usuario con ID "${id}" no encontrado`);
+    }
+    return { deleted: true };
   }
 }

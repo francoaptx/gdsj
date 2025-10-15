@@ -1,11 +1,43 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store'
+
+const authStore = useAuthStore()
+const router = useRouter()
+
+const logout = () => {
+  authStore.logout()
+  // Redirigir al login después de cerrar sesión
+  router.push('/login')
+}
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <div id="app-layout">
+    <header class="app-header" v-if="authStore.isAuthenticated">
+      <nav>
+        <RouterLink to="/">Dashboard</RouterLink>
+        <RouterLink to="/crear-ruta">Nueva Ruta</RouterLink>
+        <RouterLink to="/enviados">Enviados</RouterLink>        
+        <RouterLink v-if="authStore.user?.isAdmin" to="/admin/users">Administrar Usuarios</RouterLink>
+        <!-- Agrega más enlaces aquí -->
+      </nav>
+      <div class="user-info">
+        <span>{{ authStore.user?.fullName }}</span>
+        <button @click="logout">Salir</button>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <!-- Aquí es donde Vue Router renderizará tus vistas (HomeView, etc.) -->
+      <RouterView />
+    </main>
+  </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* Puedes agregar estilos básicos para tu layout aquí */
+.app-header { display: flex; justify-content: space-between; padding: 1rem; background: #f0f0f0; }
+nav a { margin-right: 1rem; }
+.app-content { padding: 1rem; }
+</style>

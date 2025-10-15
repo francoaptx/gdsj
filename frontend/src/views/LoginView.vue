@@ -32,12 +32,15 @@ const authStore = useAuthStore();
 const handleLogin = async () => {
   loading.value = true;
   error.value = '';
-  const result = await authStore.login(username.value, password.value);
-  loading.value = false;
-  if (result.success) {
-    router.push('/');
-  } else {
-    error.value = result.error;
+  try {
+    await authStore.login(username.value, password.value);
+    // Si el login es exitoso, el authStore se encarga de la redirección.
+    // No necesitamos hacer router.push('/') aquí.
+  } catch (err: any) {
+    // Si el login falla, el store lanza un error que capturamos aquí.
+    error.value = err.response?.data?.message || 'Error al iniciar sesión. Verifique sus credenciales.';
+  } finally {
+    loading.value = false;
   }
 };
 </script>

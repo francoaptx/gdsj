@@ -1,43 +1,41 @@
-// backend/src/users/users.controller.ts
-import { Controller, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, UseGuards, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../auth/admin.guard';
 import { UserService } from './users.service';
+import { CreateUserDto } from '../create-user.dto';
+import { UpdateUserDto } from '../update-user.dto';
 
-@UseGuards(JwtAuthGuard)
 @Controller('users')
-export class UserController {
-  constructor(private userService: UserService) {}
+export class UsersController {
+  constructor(private readonly usersService: UserService) {}
 
-  /**
-   * Obtiene la lista de todos los usuarios activos (para selección de destinatarios)
-   * Solo accesible para usuarios autenticados
-   */
-  @Get()
-  async findAll() {
-    // Opcional: excluir al usuario actual o filtrar por oficina
-    const users = await this.userService.findAllActive();
-    return users.map(user => ({
-      id: user.id,
-      fullName: user.fullName,
-      position: user.position,
-      office: user.office,
-    }));
+  @Get('recipients')
+  @UseGuards(JwtAuthGuard) // Cualquier usuario autenticado puede ver la lista de destinatarios
+  findRecipients() {
+    return this.usersService.findRecipients();
   }
 
-  /**
-   * Obtiene el perfil del usuario actual
-   */
-  @Get('me')
-  async getProfile(@Request() req) {
-    const user = await this.userService.findById(req.user.sub);
-    if (!user) throw new Error('Usuario no encontrado');
-    return {
-      id: user.id,
-      username: user.username,
-      fullName: user.fullName,
-      position: user.position,
-      office: user.office,
-      isAdmin: user.isAdmin,
-    };
+  @Get()
+  @UseGuards(JwtAuthGuard, AdminGuard) // Solo los administradores pueden ver todos los usuarios
+  findAll() {
+    return this.usersService.findAll();
+  }
+
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Post()
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    // El guard se aplica a nivel de controlador, pero lo movemos a nivel de método
+    return this.usersService.update(id, updateUserDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    // El guard se aplica a nivel de controlador, pero lo movemos a nivel de método
+    return this.usersService.remove(id);
   }
 }
