@@ -29,14 +29,6 @@ export class UserService {
     return users.map(({ password, ...user }) => user);
   }
 
-  async findRecipients(): Promise<Pick<User, 'id' | 'fullName' | 'position'>[]> {
-    return this.usersRepository.find({
-      where: { isAdmin: false, isActive: true },
-      select: ['id', 'fullName', 'position'],
-      order: { fullName: 'ASC' },
-    });
-  }
-
   async findByUsername(username: string): Promise<User | undefined> {
     return this.usersRepository.findOne({ where: { username } });
   }

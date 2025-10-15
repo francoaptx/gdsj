@@ -6,36 +6,31 @@ import { CreateUserDto } from '../create-user.dto';
 import { UpdateUserDto } from '../update-user.dto';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard) // Proteger todas las rutas con autenticación JWT
 export class UsersController {
   constructor(private readonly usersService: UserService) {}
 
-  @Get('recipients')
-  @UseGuards(JwtAuthGuard) // Cualquier usuario autenticado puede ver la lista de destinatarios
-  findRecipients() {
-    return this.usersService.findRecipients();
-  }
-
   @Get()
-  @UseGuards(JwtAuthGuard, AdminGuard) // Solo los administradores pueden ver todos los usuarios
+  @UseGuards(AdminGuard) // Y además, requerir rol de admin
   findAll() {
     return this.usersService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post()
+  @UseGuards(AdminGuard) // Y además, requerir rol de admin
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Patch(':id')
+  @UseGuards(AdminGuard) // Y además, requerir rol de admin
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    // El guard se aplica a nivel de controlador, pero lo movemos a nivel de método
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
+  @UseGuards(AdminGuard) // Y además, requerir rol de admin
   remove(@Param('id') id: string) {
-    // El guard se aplica a nivel de controlador, pero lo movemos a nivel de método
     return this.usersService.remove(id);
   }
 }

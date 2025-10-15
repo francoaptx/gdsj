@@ -69,16 +69,26 @@ const isEditing = ref(false);
 watch(() => props.user, (newUser) => {
   if (newUser) {
     isEditing.value = true;
-    form.value = { ...newUser, password: '' }; // No cargar la contraseña
+    // Llenar el formulario solo con los campos editables
+    form.value = {
+      fullName: newUser.fullName || '',
+      username: newUser.username || '',
+      password: '', // La contraseña siempre empieza vacía en el formulario
+      position: newUser.position || '',
+      office: newUser.office || '',
+      isAdmin: newUser.isAdmin || false,
+      isActive: newUser.isActive, // isActive puede ser false
+    };
   } else {
     isEditing.value = false;
+    // Resetear para el modo de creación
     form.value = { fullName: '', username: '', password: '', position: '', office: '', isAdmin: false, isActive: true };
   }
 }, { immediate: true });
 
 const submitForm = () => {
   const dataToSave = { ...form.value };
-  if (isEditing.value && !dataToSave.password) {
+  if (!dataToSave.password) {
     delete dataToSave.password; // No enviar contraseña si está vacía en modo edición
   }
   emit('save', dataToSave);

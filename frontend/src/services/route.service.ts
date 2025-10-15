@@ -32,7 +32,7 @@ export const routeService = {
 
   getUsers() {
     // Llama al endpoint real de usuarios
-    return axios.get(`${import.meta.env.VITE_API_URL}/users/recipients`, {
+    return axios.get(`${API_URL}/users`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     });
   },
