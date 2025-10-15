@@ -31,6 +31,16 @@ const router = createRouter({
       name: 'admin-users',
       component: () => import('../views/UserAdminView.vue'),
     },
+    {
+      path: '/admin/offices',
+      name: 'admin-offices',
+      component: () => import('../views/CatalogAdminView.vue'),
+    },
+    {
+      path: '/admin/positions',
+      name: 'admin-positions',
+      component: () => import('../views/CatalogAdminView.vue'),
+    },
     // Agrega aquí otras rutas de tu aplicación
     // Por ejemplo: /recibidos, /archivados, etc.
   ],

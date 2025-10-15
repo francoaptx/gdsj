@@ -1,6 +1,6 @@
 <template>
-  <div class="modal-backdrop" @click.self="$emit('close')">
-    <div class="modal-content">
+  <div class="modal-backdrop" @mousedown="isMousedownOnBackdrop = true" @mouseup.self="handleBackdropMouseUp">
+    <div class="modal-content" @mousedown.stop>
       <h2>{{ isEditing ? 'Editar' : 'Crear' }} Usuario</h2>
       <form @submit.prevent="submitForm">
         <div class="form-group">
@@ -17,11 +17,17 @@
         </div>
         <div class="form-group">
           <label>Cargo *</label>
-          <input v-model="form.position" type="text" required />
+          <input v-model="form.position" list="positions-list" type="text" required placeholder="Escriba para buscar..." />
+          <datalist id="positions-list">
+            <option v-for="pos in positions" :key="pos.id" :value="pos.name" />
+          </datalist>
         </div>
         <div class="form-group">
           <label>Oficina *</label>
-          <input v-model="form.office" type="text" required />
+          <input v-model="form.office" list="offices-list" type="text" required placeholder="Escriba para buscar..." />
+          <datalist id="offices-list">
+            <option v-for="off in offices" :key="off.id" :value="off.name" />
+          </datalist>
         </div>
         <div class="form-group-inline">
           <label>
@@ -43,7 +49,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, defineProps, defineEmits } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+import { catalogService } from '@/services/catalog.service';
 
 const props = defineProps({
   user: {
@@ -53,6 +60,16 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'save']);
+
+let isMousedownOnBackdrop = false;
+
+const handleBackdropMouseUp = () => {
+  // Cierra el modal solo si el mousedown también ocurrió en el backdrop
+  if (isMousedownOnBackdrop) {
+    emit('close');
+  }
+  isMousedownOnBackdrop = false; // Resetea para el próximo clic
+};
 
 const form = ref({
   fullName: '',
@@ -65,6 +82,22 @@ const form = ref({
 });
 
 const isEditing = ref(false);
+const offices = ref<any[]>([]);
+const positions = ref<any[]>([]);
+
+onMounted(async () => {
+  // Cargar catálogos al montar el modal
+  try {
+    const [officesRes, positionsRes] = await Promise.all([
+      catalogService.getAll('offices'),
+      catalogService.getAll('positions'),
+    ]);
+    offices.value = officesRes.data;
+    positions.value = positionsRes.data;
+  } catch (error) {
+    console.error("Error al cargar los catálogos:", error);
+  }
+});
 
 watch(() => props.user, (newUser) => {
   if (newUser) {
@@ -98,7 +131,7 @@ const submitForm = () => {
 <style scoped>
 .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
 .modal-content { background: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px; }
-.form-group { margin-bottom: 1rem; }
+.form-group { margin-bottom: 1rem; } 
 .form-group-inline { display: flex; gap: 2rem; margin-bottom: 1rem; }
 label { display: block; margin-bottom: 0.5rem; }
 input[type="text"], input[type="password"] { width: 100%; padding: 0.5rem; box-sizing: border-box; }

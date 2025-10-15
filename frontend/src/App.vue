@@ -19,7 +19,9 @@ const logout = () => {
         <RouterLink to="/">Dashboard</RouterLink>
         <RouterLink to="/crear-ruta">Nueva Ruta</RouterLink>
         <RouterLink to="/enviados">Enviados</RouterLink>        
-        <RouterLink v-if="authStore.user?.isAdmin" to="/admin/users">Administrar Usuarios</RouterLink>
+        <RouterLink v-if="authStore.user?.isAdmin" to="/admin/users">Usuarios</RouterLink>
+        <RouterLink v-if="authStore.user?.isAdmin" to="/admin/offices">Oficinas</RouterLink>
+        <RouterLink v-if="authStore.user?.isAdmin" to="/admin/positions">Cargos</RouterLink>
         <!-- Agrega más enlaces aquí -->
       </nav>
       <div class="user-info">
