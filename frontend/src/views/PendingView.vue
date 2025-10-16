@@ -1,212 +1,189 @@
 <!-- src/views/PendingView.vue -->
 <template>
-  <div>
+  <div class="pending-view">
     <h2>⏳ Pendientes</h2>
-    <div v-for="r in pending" :key="r.id" class="route-card">
-      <p><strong>{{ r.routeNumber }}</strong> de {{ r.sender.fullName }}</p>
-      <p>Proveído: {{ r.instruction }}</p>
-      
-      <!-- Plazo con color (RNF 2.6) -->
-      <p :style="{ color: getDeadlineColor(r.deadline) }">
-        Plazo máximo: {{ new Date(r.deadline).toLocaleDateString() }}
-        ({{ getDaysRemaining(r.deadline) }} días)
-      </p>
 
-      <button @click="showArchiveModal(r)">Archivar</button>
-      <button @click="showForwardModal(r)">Derivar</button>
+    <!-- Barra de búsqueda y acciones -->
+    <div class="actions-bar">
+      <input v-model="searchQuery" placeholder="Buscar por N°, referencia o remitente..." @input="handleSearch" />
+      <button v-if="selectedRoutes.length >= 2" @click="openGroupModal">
+        Agrupar Seleccionadas ({{ selectedRoutes.length }})
+      </button>
     </div>
 
-    <!-- Modal Archivar -->
-    <div v-if="archiveModal" class="modal">
-      <h3>Archivar {{ archiveModal.routeNumber }}</h3>
-      <input v-model="archiveData.folder" placeholder="Nombre de carpeta" required />
-      <textarea v-model="archiveData.observation" placeholder="Observación" required></textarea>
-      <button @click="archive">Archivar</button>
-      <button @click="archiveModal = null">Cancelar</button>
-    </div>
+    <!-- Contenido principal -->
+    <div v-if="loading">Cargando...</div>
+    <div v-else-if="filteredRoutes.length === 0 && allRoutes.length > 0">No hay resultados para su búsqueda.</div>
+    <div v-else-if="allRoutes.length === 0">No tienes correspondencia pendiente.</div>
+    <table v-else>
+      <thead>
+        <tr>
+          <th></th>
+          <th>N° Hoja de Ruta</th>
+          <th>Remitente</th>
+          <th>Proveído</th>
+          <th>Plazo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="route in filteredRoutes" :key="route.id">
+          <td>
+            <input v-if="!route.groupId" type="checkbox" :value="route.id" v-model="selectedRoutes" />
+            <span v-else title="Agrupado">📦</span>
+          </td>
+          <td>{{ route.routeNumber }}</td>
+          <td>{{ route.sender.fullName }}</td>
+          <td>{{ route.instruction }}</td>
+          <td :style="{ color: getDeadlineColor(route.deadline) }">
+            {{ new Date(route.deadline).toLocaleDateString() }} ({{ getDaysRemaining(route.deadline) }} días)
+          </td>
+          <td>
+            <button @click="showArchiveModal(route)" title="Archivar">🗄️</button>
+            <button @click="showForwardModal(route)" title="Derivar">➡️</button>
+            <button v-if="route.groupId && route.isMainRoute" @click="ungroup(route.groupId)" title="Desagrupar">
+              ↩️
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-    <!-- Modal Derivar -->
-    <div v-if="forwardModal" class="modal">
-      <h3>Derivar {{ forwardModal.routeNumber }}</h3>
-      <select v-model="forwardData.recipientId">
-        <option value="">Seleccionar destinatario</option>
-        <option v-for="u in users" :key="u.id" :value="u.id">{{ u.fullName }}</option>
-      </select>
-      <select v-model="forwardData.documentId">
-        <option value="">Sin documento adjunto</option>
-        <option v-for="d in documents" :key="d.id" :value="d.id">{{ d.cite }}</option>
-      </select>
-      <button @click="forward">Derivar</button>
-      <button @click="forwardModal = null">Cancelar</button>
-    </div>
+    <!-- Modales -->
+    <ArchiveRouteModal v-if="activeModal === 'archive'" :route="selectedRoute" @close="closeModal" @archived="handleActionCompleted" />
+    <ForwardRouteModal v-if="activeModal === 'forward'" :route="selectedRoute" :users="users" :documents="[]" @close="closeModal" @forwarded="handleActionCompleted" />
+    <GroupRouteModal v-if="activeModal === 'group'" :routes="allRoutes" :selectedRouteIds="selectedRoutes" @close="closeModal" @group-confirmed="handleGroupCompleted" />
+    <AppNotificationModal v-if="notification.show" :title="notification.title" :message="notification.message" :type="notification.type" @close="notification.show = false" />
   </div>
-
-    <!-- En PendingView.vue -->
-    <template>
-    <div>
-        <SearchBar v-model:query="searchQuery" @on-search="handleSearch" />
-        
-        <div v-if="selectedRoutes.length >= 2">
-        <button @click="showGroupModal = true">Agrupar Seleccionadas</button>
-        </div>
-
-        <div v-for="r in filteredRoutes" :key="r.id" class="route-card">
-        <input
-            v-if="!r.groupId"
-            type="checkbox"
-            v-model="selectedRoutes"
-            :value="r.id"
-        />
-        <span v-else> 📦 Grupo: {{ r.groupId.substring(0, 8) }} </span>
-        
-        <!-- ... resto del contenido ... -->
-        
-        <button v-if="r.groupId && r.isMainRoute" @click="ungroup(r.groupId)">
-            Desagrupar
-        </button>
-        </div>
-
-        <!-- Modal de agrupación -->
-        <div v-if="showGroupModal" class="modal">
-        <h3>Seleccionar hoja principal</h3>
-        <div v-for="id in selectedRoutes" :key="id">
-            <label>
-            <input
-                type="radio"
-                v-model="mainRouteId"
-                :value="id"
-            />
-            {{ getRouteById(id)?.routeNumber }}
-            </label>
-        </div>
-        <button @click="groupSelected">Agrupar</button>
-        <button @click="showGroupModal = false">Cancelar</button>
-        </div>
-    </div>
-    </template>
-
-    <script setup lang="ts">
-    // ... imports y setup ...
-    const selectedRoutes = ref<string[]>([]);
-    const showGroupModal = ref(false);
-    const mainRouteId = ref('');
-    const searchQuery = ref('');
-
-    const filteredRoutes = computed(() => {
-    if (!searchQuery.value) return pending.value;
-    return pending.value.filter(r =>
-        r.routeNumber.includes(searchQuery.value) ||
-        r.reference?.includes(searchQuery.value) ||
-        r.sender.fullName.includes(searchQuery.value) ||
-        r.instruction?.includes(searchQuery.value)
-    );
-    });
-
-    const groupSelected = async () => {
-    await routeService.groupRoutes({
-        routeIds: selectedRoutes.value,
-        mainRouteId: mainRouteId.value,
-    });
-    // Recargar
-    const res = await routeService.getPendingRoutes();
-    pending.value = res.data;
-    selectedRoutes.value = [];
-    showGroupModal.value = false;
-    };
-
-    const ungroup = async (groupId: string) => {
-    await routeService.ungroupRoutes(groupId);
-    const res = await routeService.getPendingRoutes();
-    pending.value = res.data;
-    };
-
-    const handleSearch = (query: string) => {
-    searchQuery.value = query;
-    };
-
-    const printCover = async (groupId: string) => {
-    const res = await routeService.downloadGroupCover(groupId);
-    const url = window.URL.createObjectURL(new Blob([res.data]));
-    window.open(url, '_blank');
-    };
-    </script>
-
-    
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, reactive } from 'vue';
 import { routeService } from '@/services/route.service';
+import ArchiveRouteModal from '@/components/ArchiveRouteModal.vue'; // Corrected path
+import ForwardRouteModal from '@/components/ForwardRouteModal.vue'; // Corrected path
+import GroupRouteModal from '@/components/GroupRouteModal.vue'; // Corrected path
+import AppNotificationModal from '@/components/AppNotificationModal.vue';
 
-const pending = ref<any[]>([]);
-const loading = ref(false);
-const archiveModal = ref<any>(null);
-const archiveData = ref({ folder: '', observation: '' });
-const forwardModal = ref<any>(null);
-const forwardData = ref({ recipientId: '', documentId: '' });
-const users = ref([{ id: 'u2', fullName: 'María López' }]);
-const documents = ref([{ id: 'd1', cite: 'DI-2025-0001' }]);
+const allRoutes = ref<any[]>([]);
 
-onMounted(async () => {
-  const res = await routeService.getPendingRoutes();
-  pending.value = res.data;
+const selectedRoute = ref<any | null>(null);
+const activeModal = ref<'archive' | 'forward' | 'group' | null>(null);
+
+const selectedRoutes = ref<string[]>([]);
+const searchQuery = ref('');
+
+const notification = reactive({
+  show: false,
+  title: '',
+  message: '',
+  type: 'info' as 'success' | 'error' | 'info',
 });
+
+const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info', title?: string) => {
+  notification.message = message;
+  notification.type = type;
+  notification.title = title || (type === 'success' ? 'Éxito' : type === 'error' ? 'Error' : 'Información');
+  notification.show = true;
+};
+
+const users = ref<any[]>([]); // Los usuarios para los modales se siguen cargando localmente
+const loading = ref(true);
+
+const fetchPendingData = async () => {
+  loading.value = true;
+  try {
+    const [routesRes, usersRes] = await Promise.all([
+      routeService.getPendingRoutes(),
+      routeService.getUsers(),
+    ]);
+    allRoutes.value = routesRes.data;
+    users.value = usersRes.data;
+  } catch (error) {
+    console.error("Error al cargar datos de pendientes:", error);
+    showNotification("No se pudieron cargar los datos de pendientes.", 'error');
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(fetchPendingData);
+
+const filteredRoutes = computed(() => {
+  if (!searchQuery.value) return allRoutes.value;
+  const query = searchQuery.value.toLowerCase();
+  return allRoutes.value.filter(r =>
+    r.routeNumber.toLowerCase().includes(query) ||
+    (r.reference || '').toLowerCase().includes(query) ||
+    r.sender.fullName.toLowerCase().includes(query)
+  );
+});
+
+const handleSearch = () => { /* La propiedad computada se actualiza sola */ };
 
 const getDaysRemaining = (deadline: string) => {
   const now = new Date();
   const end = new Date(deadline);
   const diffTime = end.getTime() - now.getTime();
+  if (diffTime < 0) return 0;
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
 const getDeadlineColor = (deadline: string) => {
   const days = getDaysRemaining(deadline);
-  if (days <= 0) return 'red';
+  if (days <= 1) return 'red';
   if (days <= 2) return 'orange';
-  return 'green'; // RNF 2.6
+  return 'inherit';
 };
 
 const showArchiveModal = (route: any) => {
-  archiveModal.value = route;
-  archiveData.value = { folder: '', observation: '' };
-};
-
-const archive = async () => {
-  await routeService.archiveRoute(archiveModal.value.id, archiveData.value);
-  // Recargar
-  const res = await routeService.getPendingRoutes();
-  pending.value = res.data;
-  archiveModal.value = null;
+  selectedRoute.value = route;
+  activeModal.value = 'archive';
 };
 
 const showForwardModal = (route: any) => {
-  forwardModal.value = route;
-  forwardData.value = { recipientId: '', documentId: '' };
+  selectedRoute.value = route;
+  activeModal.value = 'forward';
 };
 
-const forward = async () => {
-  await routeService.forwardRoute(forwardModal.value.id, forwardData.value);
-  const res = await routeService.getPendingRoutes();
-  pending.value = res.data;
-  forwardModal.value = null;
+const openGroupModal = () => {
+  activeModal.value = 'group';
+};
+
+const closeModal = () => {
+  selectedRoute.value = null;
+  activeModal.value = null;
+};
+
+const handleActionCompleted = (routeId: string) => {
+  allRoutes.value = allRoutes.value.filter(r => r.id !== routeId);
+  closeModal();
+};
+
+const handleGroupCompleted = async () => {
+  await fetchPendingData(); // Forzar la recarga de datos desde el servidor
+  selectedRoutes.value = []; // Limpiar selección
+  closeModal();
+};
+
+const ungroup = async (groupId: string) => {
+  if (!confirm('¿Está seguro de que desea desagrupar estas hojas de ruta?')) return;
+  try {
+    await routeService.ungroupRoutes(groupId);
+    showNotification('Hojas de ruta desagrupadas correctamente.', 'success');
+    await fetchPendingData(); // Recargar datos
+  } catch (error) {
+    showNotification('Error al desagrupar.', 'error');
+  }
 };
 </script>
 
 <style scoped>
-.route-card {
-  border: 1px solid #ccc;
-  padding: 16px;
-  margin-bottom: 16px;
-  border-radius: 8px;
-}
-.modal {
-  position: fixed;
-  top: 20%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  padding: 20px;
-  border: 1px solid #ccc;
-  z-index: 1000;
-}
+.pending-view { padding: 1rem; }
+.actions-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.actions-bar input { padding: 8px; width: 300px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+th { background-color: #f4f4f4; }
+button { margin: 0 4px; cursor: pointer; background: none; border: none; font-size: 1.2em; }
 </style>

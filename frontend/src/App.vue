@@ -18,7 +18,9 @@ const logout = () => {
       <nav>
         <RouterLink to="/">Dashboard</RouterLink>
         <RouterLink to="/crear-ruta">Nueva Ruta</RouterLink>
-        <RouterLink to="/enviados">Enviados</RouterLink>        
+        <RouterLink to="/recibidos">Recibidos</RouterLink>
+        <RouterLink to="/pendientes">Pendientes</RouterLink>
+        <RouterLink to="/enviados">Enviados</RouterLink>
         <RouterLink v-if="authStore.user?.isAdmin" to="/admin/users">Usuarios</RouterLink>
         <RouterLink v-if="authStore.user?.isAdmin" to="/admin/offices">Oficinas</RouterLink>
         <RouterLink v-if="authStore.user?.isAdmin" to="/admin/positions">Cargos</RouterLink>

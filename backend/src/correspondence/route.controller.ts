@@ -144,6 +144,15 @@ export class RouteController {
     return this.groupingService.ungroupRoutes(req.user.id, groupId);
     }
 
+// En el archivo route.controller.ts del backend
+
+    @Get('pending')
+    @UseGuards(JwtAuthGuard)
+    async getPendingRoutes(@Request() req) {
+      return this.routeService.getPendingRoutes(req.user.id);
+    }
+
+    
     @Get('group/:groupId/cover')
     async getGroupCover(@Param('groupId') groupId: string, @Res() res) {
     const routes = await this.groupingService.getGroupCover(groupId);

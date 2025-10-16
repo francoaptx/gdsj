@@ -66,6 +66,7 @@ export const routeService = {
   },
 
   getIncomingRoutes() {
+    // Apuntamos al endpoint que sabemos que existe para la bandeja de entrada.
     return axios.get(`${API_URL}/routes/incoming`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     });
@@ -89,7 +90,7 @@ export const routeService = {
     });
   },
 
-  forwardRoute(routeId: string, data: { recipientId: string; documentId?: string }) {
+  forwardRoute(routeId: string, data: { recipientId: string; instruction: string; documentId?: string }) {
     return axios.post(`${API_URL}/routes/${routeId}/forward`, data, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     });

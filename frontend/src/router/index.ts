@@ -9,60 +9,92 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
+      meta: { requiresAuth: false },
     },
     {
       path: '/crear-ruta',
       name: 'create-route',
       // Esto carga el componente solo cuando se visita la ruta
       component: () => import('../views/CreateRouteView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/enviados',
       name: 'sent-routes',
       component: () => import('../views/SentRoutesView.vue'), // Asegúrate de que este componente exista
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/recibidos',
+      name: 'incoming-routes',
+      component: () => import('../views/IncomingView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/pendientes',
+      name: 'pending-routes',
+      component: () => import('../views/PendingView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/admin/users',
       name: 'admin-users',
       component: () => import('../views/UserAdminView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/admin/offices',
       name: 'admin-offices',
       component: () => import('../views/CatalogAdminView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/admin/positions',
       name: 'admin-positions',
       component: () => import('../views/CatalogAdminView.vue'),
+      meta: { requiresAuth: true },
     },
-    // Agrega aquí otras rutas de tu aplicación
-    // Por ejemplo: /recibidos, /archivados, etc.
   ],
 })
 
 router.beforeEach(async (to) => {
-  // Redirigir al login si no está autenticado e intenta acceder a una ruta protegida
-  const publicPages = ['/login'];
-  const authRequired = !publicPages.includes(to.path);
-  const auth = useAuthStore();
+  try {
+    const auth = useAuthStore();
 
-  // Si el usuario no está cargado pero hay un token, espera a que se cargue el perfil
-  if (auth.token && !auth.user) {
-    await auth.fetchProfile();
-  }
+    // Intenta cargar el perfil del usuario si hay un token pero no un objeto de usuario
+    if (auth.token && !auth.user) {
+      await auth.fetchProfile();
+    }
 
-  if (authRequired && !auth.isAuthenticated) {
-    auth.returnUrl = to.fullPath;
+    // Lógica de redirección
+    const requiresAuth = to.meta.requiresAuth;
+    const isAuthenticated = auth.isAuthenticated;
+
+    if (requiresAuth && !isAuthenticated) {
+      // Si la ruta requiere autenticación y el usuario no está logueado, redirigir a login
+      auth.returnUrl = to.fullPath;
+      return '/login';
+    }
+
+    if (to.name === 'login' && isAuthenticated) {
+      // Si el usuario ya está logueado, no puede acceder a la página de login
+      return { name: 'home' };
+    }
+
+    // Si no se cumple ninguna de las condiciones de redirección, permite la navegación.
+    return true;
+  } catch (error) {
+    // Si hay un error al verificar el token (ej. expirado), limpiar la sesión y redirigir a login
+    console.error("Error en el guardia de navegación (probablemente token inválido):", error);
+    const auth = useAuthStore();
+    auth.logout();
     return '/login';
-  } else if (!authRequired && auth.isAuthenticated) {
-    // Si el usuario está autenticado, no debe poder ver la página de login
-    return '/';
   }
 });
 
