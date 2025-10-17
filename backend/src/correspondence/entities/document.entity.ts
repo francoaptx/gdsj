@@ -1,18 +1,10 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  ManyToOne,
-  JoinColumn,
-  Generated,
-} from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from '../../users/entities/user.entity'; // Ajusta la ruta si es necesario
 
 export enum DocumentType {
+  REPORT = 'report',
   INTERNAL_NOTE = 'internal_note',
   EXTERNAL_NOTE = 'external_note',
-  REPORT = 'report',
 }
 
 @Entity('documents')
@@ -23,46 +15,32 @@ export class Document {
   @Column({ type: 'enum', enum: DocumentType })
   type: DocumentType;
 
-  @Column({ length: 100 })
-  subject: string; // Asunto
+  @Column({ nullable: true }) // Permite valores nulos temporalmente para solucionar el arranque
+  subject: string;
 
   @Column({ unique: true })
-  cite: string; // Número de Cite único
+  cite: string; // Se genera automáticamente
 
   @Column({ nullable: true })
-  reference?: string;
+  reference: string;
 
-  @Column({ default: false })
-  isDraft: boolean;
+  @Column({ type: 'text', nullable: true })
+  body: string; // Contenido del documento
 
-  // Relación con autor
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'authorId' })
-  author: User;
+  @CreateDateColumn()
+  createdAt: Date;
 
-  @Column()
-  authorId: string;
-
-  // Destinatario principal
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'recipientId' })
   recipient: User;
 
   @Column()
   recipientId: string;
 
-  // Vía (copia opcional)
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, eager: true })
   @JoinColumn({ name: 'ccId' })
-  cc?: User;
+  cc: User;
 
   @Column({ nullable: true })
-  ccId?: string;
-
-  // Archivo subido (ruta en disco o URL)
-  @Column({ nullable: true })
-  filePath?: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
+  ccId: string;
 }

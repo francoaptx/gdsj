@@ -20,7 +20,10 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     // 👇 ESTE ES EL GETTER QUE FALTA
-    isAuthenticated: (state) => !!state.user && !!state.token,
+    isAuthenticated(state) {
+      // Un usuario está autenticado si tenemos tanto el token como los datos del usuario.
+      return !!state.token && !!state.user;
+    },
   },
 
   actions: {

@@ -24,7 +24,10 @@ const logout = () => {
         <RouterLink v-if="authStore.user?.isAdmin" to="/admin/users">Usuarios</RouterLink>
         <RouterLink v-if="authStore.user?.isAdmin" to="/admin/offices">Oficinas</RouterLink>
         <RouterLink v-if="authStore.user?.isAdmin" to="/admin/positions">Cargos</RouterLink>
-        <!-- Agrega más enlaces aquí -->
+        <!-- Enlace para gestionar plantillas, ahora usa la misma condición -->
+        <RouterLink v-if="authStore.user?.isAdmin" to="/admin/templates">
+          Gestionar Plantilla
+        </RouterLink>
       </nav>
       <div class="user-info">
         <span>{{ authStore.user?.fullName }}</span>

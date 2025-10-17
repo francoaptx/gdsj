@@ -87,7 +87,7 @@ const forward = async () => {
   wasSuccess.value = false;
   try {
     await routeService.forwardRoute(props.route.id, {
-      recipientId: forwardData.recipientId, // This is correct, no change needed here
+      recipientId: forwardData.recipientId,
       instruction: forwardData.instruction, // This is correct, no change needed here
       documentId: forwardData.documentId || undefined, // Convert null to undefined for optional parameter
     });

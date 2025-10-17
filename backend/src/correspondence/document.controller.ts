@@ -1,61 +1,40 @@
-// backend/src/correspondence/document.controller.ts
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Param,
-  UseGuards,
-  Res,
-  Request,
-} from '@nestjs/common';
-import { UseInterceptors, UploadedFile } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { documentUploadOptions } from './document-upload.config';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Controller, Post, Get, Param, Body, UseGuards, Res } from '@nestjs/common';
 import { DocumentService } from './document.service';
-import { DocumentType } from './entities/document.entity';
-import * as fs from 'fs';
-import * as path from 'path';
+import { CreateDocumentDto } from './dto/create-document.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // Assuming this guard exists
+import { GetUser } from './get-user.decorator'; // Asumiendo que este decorador existe
+import { User } from '../users/entities/user.entity';
+import { Response } from 'express';
 
 @Controller('documents')
 @UseGuards(JwtAuthGuard)
 export class DocumentController {
-  constructor(private documentService: DocumentService) {}
+  constructor(private readonly documentService: DocumentService) {}
 
   @Post('draft')
-  createDraft(@Request() req, @Body() body: any) {
-    return this.documentService.createDraft(req.user, {
-      type: body.type,
-      subject: body.subject,
-      recipientId: body.recipientId,
-      ccId: body.ccId,
-      reference: body.reference,
-    });
+  async createDraft(
+    @Body() createDocumentDto: CreateDocumentDto,
+    @GetUser() user: User, // Obtener el usuario autenticado
+  ) {
+    return this.documentService.createDraft(createDocumentDto, user);
   }
 
-  @Get(':id/template')
-  async downloadTemplate(@Param('id') id: string, @Res() res) {
-    const doc = await this.documentService.getDocumentById(id);
-
-    // Generar contenido básico de Word (simulado como texto plano por ahora)
-    const content = `MEMBRETE OFICIAL\n\nCite: ${doc.cite}\nFecha: ${new Date().toLocaleDateString()}\nReferencia: ${doc.reference || 'N/A'}\n\nAsunto: ${doc.subject}\n\n[Cuerpo del documento]\n\nAtentamente,\n${doc.author.fullName}\n${doc.author.position}`;
-    
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="plantilla_${doc.cite}.docx"`);
-    res.send(Buffer.from(content, 'utf-8'));
-  }
-
-        // Nuevo endpoint
-    @Post(':id/upload')
-    @UseInterceptors(FileInterceptor('file', documentUploadOptions))
-    async uploadDocument(
+  @Get(':id/download')
+  async downloadGeneratedDocument(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
-    ) {
-    if (!file) {
-        throw new Error('Archivo no proporcionado o tipo inválido');
+    @GetUser() user: User, // Obtiene el usuario actual para la información del remitente
+    @Res() res: Response,
+  ) {
+    try {
+      const documentBuffer = await this.documentService.generateDocument(id, user);
+      const document = await this.documentService.getDocumentById(id); // Para obtener el CITE para el nombre del archivo
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${document.cite}.docx"`);
+      res.send(documentBuffer);
+    } catch (error) {
+      console.error('Error al descargar el documento generado:', error);
+      res.status(500).send('Error al generar o descargar el documento.');
     }
-    return this.documentService.uploadFinalDocument(id, file.filename);
-    }
+  }
 }

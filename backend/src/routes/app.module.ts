@@ -3,11 +3,11 @@ import { Module } from '@nestjs/common';
 // import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { CorrespondenceModule } from './correspondence/correspondence.module';
-import { CatalogsModule } from './correspondence/catalogs.module';
-import { TemplatesModule } from './templates/templates.module'; // <-- AÑADIR ESTE MÓDULO
+import { AuthModule } from '../auth/auth.module';
+import { UsersModule } from '../users/users.module';
+import { CorrespondenceModule } from '../correspondence/correspondence.module';
+import { CatalogsModule } from '../correspondence/catalogs.module';
+import { TemplatesModule } from '../templates/templates.module';
 
 @Module({
   imports: [
@@ -30,7 +30,7 @@ import { TemplatesModule } from './templates/templates.module'; // <-- AÑADIR E
     UsersModule,
     CorrespondenceModule,
     CatalogsModule,
-    TemplatesModule, // <-- AÑADIR ESTE MÓDULO
+    TemplatesModule,
   ],
   // controllers: [AppController],
   // providers: [AppService],

@@ -9,6 +9,8 @@ import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './jwt.strategy'; // ← nuevo
 import { LocalStrategy } from './local.strategy';
 import { LocalAuthGuard } from './local-auth.guard';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from 'src/users/entities/user.entity';
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import { LocalAuthGuard } from './local-auth.guard';
       }),
       inject: [ConfigService],
     }),
+      TypeOrmModule.forFeature([User]),
   ],
   providers: [AuthService, JwtStrategy, LocalStrategy, LocalAuthGuard], // ← registra JwtStrategy
   controllers: [AuthController],

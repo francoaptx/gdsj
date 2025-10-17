@@ -1,12 +1,31 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, IsIn } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, IsOptional, IsNumberString, IsIn } from 'class-validator';
 
 export class CreateRouteDto {
-  @IsString() @IsNotEmpty() recipientId: string;
-  @IsString() @IsNotEmpty() instruction: string;
-  @IsString() @IsOptional() reference?: string;
-  @IsString() @IsOptional() documentId?: string;
-  @Type(() => Number) @IsNumber() @Min(0) totalPages: number;
-  @Type(() => Number) @IsNumber() @Min(0) attachmentsCount: number;
-  @IsString() @IsNotEmpty() @IsIn(['normal', 'urgent']) priority: 'normal' | 'urgent';
+  
+  @IsString()
+  @IsNotEmpty()
+  recipientId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  instruction: string;
+
+  @IsOptional()
+  @IsString()
+  documentId?: string;
+
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  totalPages?: number;
+
+  @IsOptional()
+  @IsNumberString()
+  attachmentsCount?: number;
+
+  @IsIn(['normal', 'urgent'])
+  priority: 'normal' | 'urgent';
 }

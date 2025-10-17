@@ -1,31 +1,30 @@
-// coinssjj/backend/src/auth/jwt.strategy.ts
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { UserService } from '../users/users.service';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    private configService: ConfigService,
-    private userService: UserService,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
-      secretOrKey: configService.get('JWT_SECRET'),
+      secretOrKey: process.env.JWT_SECRET || 'YOUR_SECRET_KEY',
     });
   }
 
-  async validate(payload: any) {
-    // Aquí puedes cargar al usuario si lo necesitas en req.user
-    const user = await this.userService.findById(payload.sub);
+  async validate(payload: { id: string; username: string }): Promise<User> {
+    const { id } = payload;
+    const user = await this.usersRepository.findOneBy({ id });
+
     if (!user) {
-      throw new Error('Usuario no encontrado');
+      throw new UnauthorizedException('Token inválido, usuario no encontrado.');
     }
-    // Devolvemos el objeto de usuario completo, que NestJS adjuntará a `req.user`
-    const { password, ...result } = user;
-    return result;
+
+    return user;
   }
 }

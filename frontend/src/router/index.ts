@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import HomeView from '../views/HomeView.vue';
 import { useAuthStore } from '@/stores/auth.store';
 
 const router = createRouter({
@@ -60,41 +60,59 @@ const router = createRouter({
       component: () => import('../views/CatalogAdminView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/admin/templates',
+      name: 'template-manager',
+      component: () => import('../views/TemplateManager.vue'),
+      meta: { requiresAuth: true, role: 'admin' } // Proteger la ruta
+    },
   ],
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from, next) => {
   try {
-    const auth = useAuthStore();
+    const authStore = useAuthStore();
 
     // Intenta cargar el perfil del usuario si hay un token pero no un objeto de usuario
-    if (auth.token && !auth.user) {
-      await auth.fetchProfile();
+    if (authStore.token && !authStore.user) {
+      await authStore.fetchProfile();
     }
 
     // Lógica de redirección
     const requiresAuth = to.meta.requiresAuth;
-    const isAuthenticated = auth.isAuthenticated;
+    const isAuthenticated = authStore.isAuthenticated;
+    const requiredRole = to.meta.role as string | undefined;
 
     if (requiresAuth && !isAuthenticated) {
       // Si la ruta requiere autenticación y el usuario no está logueado, redirigir a login
-      auth.returnUrl = to.fullPath;
-      return '/login';
+      authStore.returnUrl = to.fullPath;
+      return next('/login');
     }
 
     if (to.name === 'login' && isAuthenticated) {
       // Si el usuario ya está logueado, no puede acceder a la página de login
-      return { name: 'home' };
+      return next({ name: 'home' });
     }
 
-    // Si no se cumple ninguna de las condiciones de redirección, permite la navegación.
-    return true;
+    // --- CORRECCIÓN ---
+    // Verifica si la ruta requiere un rol y si el usuario no cumple con él.
+    // Se ha añadido una comprobación para 'isAdmin' para que coincida con la lógica del menú.
+    const isRoleCheckFailed = requiredRole === 'admin' 
+      ? !authStore.user?.isAdmin 
+      : requiredRole && authStore.user?.role !== requiredRole;
+
+    if (isRoleCheckFailed) {
+      return next({ name: 'home' }); 
+    }
+
+    // Todo en orden, continuar a la ruta solicitada.
+    next();
   } catch (error) {
     // Si hay un error al verificar el token (ej. expirado), limpiar la sesión y redirigir a login
     console.error("Error en el guardia de navegación (probablemente token inválido):", error);
     const auth = useAuthStore();
     auth.logout();
-    return '/login';
+    // No se usa `next` aquí porque `auth.logout()` ya redirige.
   }
 });
 

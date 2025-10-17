@@ -37,7 +37,7 @@ export class RouteController {
 
   @Post()
   @UseInterceptors(
-    FileInterceptor('simpleAttachment', {
+    FileInterceptor('file', { // <-- CORRECCIÓN: Cambiado de 'simpleAttachment' a 'file'
       storage: diskStorage({
         destination: './uploads/routes',
         filename: (req, file, cb) => {
@@ -52,12 +52,12 @@ export class RouteController {
   async createRoute(
     @Request() req,
     @Body() body: CreateRouteDto,
-    @UploadedFile() simpleAttachment?: Express.Multer.File,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
     const routeData = {
       ...body,
-      simpleAttachmentPath: simpleAttachment
-        ? `/uploads/routes/${simpleAttachment.filename}`
+      simpleAttachmentPath: file
+        ? `/uploads/routes/${file.filename}`
         : undefined,
     };
     return this.routeService.createRoute(req.user, routeData);

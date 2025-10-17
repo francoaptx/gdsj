@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Route, RoutePriority, RouteStatus } from './entities/route.entity';
@@ -14,7 +14,8 @@ export class RouteService {
   constructor(
     @InjectRepository(Route)
     private routeRepository: Repository<Route>,
-    private routeNumberService: RouteNumberService,
+    @Inject(forwardRef(() => RouteNumberService)) private routeNumberService: RouteNumberService,
+    @Inject(forwardRef(() => DocumentService))
     private documentService: DocumentService,
     private workdaysService: WorkdaysService,
     private historyService: HistoryService,
